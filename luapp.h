@@ -1,5 +1,5 @@
-#ifndef _LUAGLUE_LUA_H
-#define _LUAGLUE_LUA_H
+#ifndef _LUAGLUE_LUAPP_H
+#define _LUAGLUE_LUAPP_H
 
 #include "luatype.h"
 #include "luaref.h"
@@ -71,4 +71,4 @@ private:
 };
 
 
-#endif // _LUAGLUE_LUA_H
+#endif // _LUAGLUE_LUAPP_H

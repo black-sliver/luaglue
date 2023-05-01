@@ -23,7 +23,7 @@ This header-only library provides
 
         a way to map c++ classes as user types into lua
 
-* `Lua` in `lua.h`
+* `Lua` in `luapp.h`
 
         a simple wrapper around lua_State that
         provides lua_push* calls through overloaded ::Push

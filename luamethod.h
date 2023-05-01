@@ -1,7 +1,7 @@
 #ifndef _LUAGLUE_LUAMETHOD_H
 #define _LUAGLUE_LUAMETHOD_H
 
-#include "lua.h" // provides function overloading for push
+#include "luapp.h" // provides function overloading for push
 #include "luaref.h" // provides reference for lua references (functions, ...)
 #include "luavariant.h"
 #include "lua_utils.h" // wraps (most) possible lua results
