@@ -27,7 +27,7 @@ extern "C" {
 
 // helper to generate a map name => func pointer
 // TODO: (argument count to) allow overloads?
-#define LUA_METHOD(CLASS, METHOD, ARGUMENTS...) { STRINGIFY(METHOD), LuaMethod<CLASS,&CLASS::METHOD,ARGUMENTS>::Func }
+#define LUA_METHOD(CLASS, METHOD, ...) { STRINGIFY(METHOD), LuaMethod<CLASS,&CLASS::METHOD,__VA_ARGS__>::Func }
 // (Tracker,AddItems, const char*) => {"AddItems", LuaMethod<Tracker,&Tracker::AddItems,const char*>::Func}
 
 // static_assert helper, since we can not directly assert in if constexpr
