@@ -78,9 +78,19 @@ static json lua_to_json(lua_State* L, int n=-1)
 static void json_to_lua(lua_State* L, const json& j)
 {
     switch (j.type()) {
-        case json::value_t::number_integer:
         case json::value_t::number_unsigned:
-            lua_pushinteger(L, j);
+            if (sizeof(lua_Integer) >= 8 || j.get<uint64_t>() <= INT32_MAX) {
+                lua_pushinteger(L, j);
+            } else {
+                lua_pushnumber(L, j);
+            }
+            break;
+        case json::value_t::number_integer:
+            if (sizeof(lua_Integer) >= 8 || (j.get<int64_t>() <= INT32_MAX && j.get<int64_t>() >= INT32_MIN)) {
+                lua_pushinteger(L, j);
+            } else {
+                lua_pushnumber(L, j);
+            }
             break;
         case json::value_t::number_float:
             lua_pushnumber(L, j);
