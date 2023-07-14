@@ -9,6 +9,7 @@ extern "C" {
 #include <lauxlib.h>
 }
 #include <limits>
+#include <stdint.h>
 
 
 // Note: we basically wrap lua just to have parameter overloading
