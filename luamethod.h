@@ -48,6 +48,16 @@ struct LuaMethodHelper
             LUAMETHOD_DEBUG_printf("LuaMethod fetched: #%d %d (%d done, %d remaining)\n", n, (int)next, (int)sizeof...(Prev), (int)sizeof...(Rest));
             n++;
             return LuaMethodHelper<T,F,Prev...,Next>::template run < Rest... > (L,o,n, prev...,next);
+        } else if constexpr(std::is_same<Next, unsigned>::value) {
+            unsigned next;
+            if (lua_isinteger(L, n))
+                next = (unsigned)lua_tointeger(L, n);
+            else
+                next = (unsigned)luaL_checknumber(L, n);
+            LUAMETHOD_DEBUG_printf("LuaMethod fetched: #%d %u (%d done, %d remaining)\n",
+                    n, next, (int)sizeof...(Prev), (int)sizeof...(Rest));
+            n++;
+            return LuaMethodHelper<T, F, Prev..., Next>::template run<Rest...>(L, o, n, prev..., next);
         } else if constexpr(std::is_same<Next,int64_t>::value) {
             int64_t next;
             if (lua_isinteger(L, n))
