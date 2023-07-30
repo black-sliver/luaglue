@@ -45,7 +45,7 @@ struct LuaMethodHelper
         if constexpr (std::is_same<Next, int>::value) {
             // NOTE: we just default to 0 for optional args at the moment
             int next;
-            if (n < lua_gettop(L))
+            if (n > lua_gettop(L))
                 next = 0;
             else
                 next = (int)luaL_checkinteger(L, n);
@@ -55,9 +55,9 @@ struct LuaMethodHelper
             return LuaMethodHelper<T, F, Prev..., Next>::template run<Rest...>(L, o, n, prev..., next);
         } else if constexpr (std::is_same<Next, unsigned>::value) {
             unsigned next;
-            if (n < lua_gettop(L))
+            if (n > lua_gettop(L))
                 next = 0;
-            if (lua_isinteger(L, n))
+            else if (lua_isinteger(L, n))
                 next = (unsigned)lua_tointeger(L, n);
             else
                 next = (unsigned)luaL_checknumber(L, n);
