@@ -7,8 +7,40 @@ extern "C" {
 #include <lauxlib.h>
 }
 #include <nlohmann/json.hpp>
+
+
 using nlohmann::json;
 
+
+class LuaJson_EmptyArray {
+    // Lua does not differentiate between array and object and lua_to_json will
+    // create an empty object for an empty table. This can be used to create a
+    // pseudo constant that will generate an empty array.
+
+public:
+    static void Lua_Register(lua_State *L) { // create "Class" in Lua
+        // create metatable for this class
+        luaL_newmetatable(L, Lua_Name);
+        lua_pop(L,1);
+    }
+
+    void Lua_Push(lua_State *L) const { // pushes instance to Lua stack
+        // create userdata=pointer for this instance
+        const void **ud = (const void**) lua_newuserdata(L, sizeof(void**));
+        *ud = nullptr;
+        // set metatable
+        luaL_setmetatable(L, Lua_Name);
+    }
+
+    static bool Lua_is(lua_State *L, int narg) {
+        if (luaL_testudata(L, narg, Lua_Name))
+            return true;
+        return false;
+    }
+
+protected: // Lua interface implementation
+    static constexpr const char Lua_Name[] = "LuaJson_EmptyArray";
+};
 
 static json lua_to_json(lua_State* L, int n=-1)
 {
@@ -66,10 +98,16 @@ static json lua_to_json(lua_State* L, int n=-1)
             if (j.is_null()) j = json::object(); // return empty object for empty table
             break;
         }
+        case LUA_TUSERDATA:
+        case LUA_TLIGHTUSERDATA:
+            if (LuaJson_EmptyArray::Lua_is(L, n)) {
+                j = json::array(); // empty array
+                break;
+            }
+            // fall through
         case LUA_TNIL:
         case LUA_TNONE:
         default:
-            // TODO: user type
             break; // return NULL
     }
     return j;
