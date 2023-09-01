@@ -33,7 +33,14 @@ static lua_Integer luaL_len(lua_State *L, int idx)
     return (lua_Integer)lua_objlen(L, idx);
 }
 
-LUALIB_API void *luaL_testudata (lua_State *L, int ud, const char *tname) {
+#define luaL_getmetatable(L,n)  (lua_getfield(L, LUA_REGISTRYINDEX, (n)))
+
+static void luaL_setmetatable (lua_State *L, const char *tname) {
+    luaL_getmetatable(L, tname);
+    lua_setmetatable(L, -2);
+}
+
+static void *luaL_testudata (lua_State *L, int ud, const char *tname) {
   void *p = lua_touserdata(L, ud);
   if (p != NULL) {  /* value is a userdata? */
     if (lua_getmetatable(L, ud)) {  /* does it have a metatable? */
