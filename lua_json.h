@@ -38,7 +38,7 @@ public:
         return false;
     }
 
-protected: // Lua interface implementation
+    // Lua interface implementation
     static constexpr const char Lua_Name[] = "LuaJson_EmptyArray";
 };
 
