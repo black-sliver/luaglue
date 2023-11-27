@@ -151,7 +151,6 @@ struct LuaMethodHelper
         } else {
             // result is other non-void
             auto res = (o->*F)(prev...);
-            lua_settop(L, 0); // FIXME: is this the way to clean the stack?
             Lua(L).Push(res);
             LUAMETHOD_DEBUG_printf("LuaMethod pushed result\n");
             return 1;
