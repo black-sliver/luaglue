@@ -40,7 +40,11 @@ public:
     }
 
     // Lua interface implementation
+#if !defined _MSC_VER || _MSC_VER >= 1911
     static constexpr const char Lua_Name[] = "LuaJson_EmptyArray";
+#else
+    static const char Lua_Name[]; // = "LuaJson_EmptyArray"; // assign this in implementation
+#endif
 };
 
 static json lua_to_json(lua_State* L, int n=-1)
