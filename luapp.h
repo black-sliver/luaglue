@@ -1,13 +1,9 @@
 #ifndef _LUAGLUE_LUAPP_H
 #define _LUAGLUE_LUAPP_H
 
+#include "lua_include.h"
 #include "luatype.h"
 #include "luaref.h"
-extern "C" {
-#include <lua.h>
-#include <lualib.h>
-#include <lauxlib.h>
-}
 #include <limits>
 #include <stdint.h>
 

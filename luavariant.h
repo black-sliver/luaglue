@@ -1,13 +1,9 @@
 #ifndef _LUAGLUE_LUAVARIANT_H
 #define _LUAGLUE_LUAVARIANT_H
 
+#include "lua_include.h"
 #include "luatype.h"
 #include "luacompat.h"
-extern "C" {
-#include <lua.h>
-#include <lualib.h>
-#include <lauxlib.h>
-}
 #include <string>
 
 class LuaVariant final : public LuaType {

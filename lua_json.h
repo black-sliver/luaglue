@@ -1,11 +1,7 @@
 #ifndef LUAJSON_H
 #define LUAJSON_H
 
-extern "C" {
-#include <lua.h>
-#include <lualib.h>
-#include <lauxlib.h>
-}
+#include "lua_include.h"
 #include "luacompat.h"
 #include <nlohmann/json.hpp>
 

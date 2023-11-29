@@ -1,12 +1,8 @@
 #ifndef _LUAGLUE_LUAINTERFACE_H
 #define _LUAGLUE_LUAINTERFACE_H
 
+#include "lua_include.h"
 #include "luatype.h"
-extern "C" {
-#include <lua.h>
-#include <lualib.h>
-#include <lauxlib.h>
-}
 #include <map> // TODO: write a constexpr_map for MethodMap instead
 #include <string_view>
 #include <string>

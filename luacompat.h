@@ -6,11 +6,7 @@
 // This compatibility layer is compile-time, so you will have to target the correct version of Lua when compiling.
 // Stuff like __attribute((weak)) and /alternatename is not cross-platform, so we ditch that idea for now.
 
-
-extern "C" {
-#include <lua.h>
-#include <lauxlib.h>
-}
+#include "lua_include.h"
 #include <limits>
 
 

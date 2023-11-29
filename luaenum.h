@@ -1,11 +1,7 @@
 #ifndef _LUAGLUE_LUAENUM_H
 #define _LUAGLUE_LUAENUM_H
 
-extern "C" {
-#include <lua.h>
-#include <lualib.h>
-#include <lauxlib.h>
-}
+#include "lua_include.h"
 #include <map> // TODO: write a constexpr_map for MethodMap instead
 #include <string>
 

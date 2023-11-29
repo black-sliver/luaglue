@@ -4,6 +4,7 @@
 #error "Please include luamethod.h instead"
 #endif
 
+#include "lua_include.h"
 #include "luapp.h" // provides function overloading for push
 #include "luaref.h" // provides reference for lua references (functions, ...)
 #include "luavariant.h"
@@ -11,11 +12,6 @@
 #ifndef NO_LUAMETHOD_JSON
 #include "lua_json.h"
 #endif
-extern "C" {
-#include <lua.h>
-#include <lualib.h>
-#include <lauxlib.h>
-}
 
 #ifdef DEBUG_LUA_METHOD
 #   define LUAMETHOD_DEBUG_printf printf

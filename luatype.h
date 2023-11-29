@@ -1,13 +1,8 @@
 #ifndef _LUAGLUE_LUATYPE_H
 #define _LUAGLUE_LUATYPE_H
 
+#include "lua_include.h"
 #include "luaref.h"
-extern "C" {
-#include <lua.h>
-#include <lualib.h>
-#include <lauxlib.h>
-}
-
 
 /* Interface to have c++ push a value to lua, see luainterface.h for the actual magic */
 class LuaType {
