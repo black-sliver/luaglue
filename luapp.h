@@ -6,11 +6,21 @@
 #include "luaref.h"
 #include <limits>
 #include <stdint.h>
+#include <stdexcept>
 
 
 // Note: we basically wrap lua just to have parameter overloading
 // we may want to actually fully wrap lua to manage the life cycle?
 class Lua final {
+private:
+#if __cplusplus < 201700L
+    // Get not implemented for C++14
+#else
+    // static_assert helper, since we can not directly assert in if constexpr
+    template<bool flag = false>
+    static void static_unsupported_type() { static_assert(flag, "unsupported type"); }
+#endif
+
 public:
     Lua(lua_State *L) : L(L) {}
     
@@ -63,6 +73,32 @@ public:
     {
         lua_pushnil(L);
     }
+
+#if __cplusplus < 201700L
+    // Get not implemented for C++14
+#else
+    template<class T>
+    T Get(int idx) {
+        if constexpr (std::is_same<T, bool>::value) {
+#ifdef LUA_TBOOLEAN
+            if (lua_isboolean(L, idx))
+                return lua_toboolean(L, idx) != 0;
+#endif
+            if (lua_isinteger(L, idx))
+                return luaL_checkinteger(L, idx) != 0;
+#ifndef LUA_TBOOLEAN
+            // older Lua uses true != nil
+            return lua_toboolean(L, idx);
+#else
+            // newer Lua can detect wrong type
+            throw std::invalid_argument("not a boolean");
+#endif
+        } else {
+            static_unsupported_type();
+        }
+    }
+#endif
+
 private:
     lua_State *L;
 };
