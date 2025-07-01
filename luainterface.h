@@ -1,13 +1,11 @@
 #ifndef _LUAGLUE_LUAINTERFACE_H
 #define _LUAGLUE_LUAINTERFACE_H
 
-#include "lua_include.h"
-#include "luatype.h"
 #include <map> // TODO: write a constexpr_map for MethodMap instead
-#include <string_view>
 #include <string>
-
-#include "lua_utils.h"
+#include <string_view>
+#include "luatype.h"
+#include "lua_include.h"
 
 
 /* Magic to get a c++ object into lua */
@@ -15,7 +13,8 @@
 template <class T>
 class LuaInterface : public LuaType {
 private:
-    static int Lua_IndexWrapper(lua_State *L) {
+    static int Lua_IndexWrapper(lua_State *L)
+    {
         T *o = luaL_checkthis(L, -2);
         const char *key = luaL_checkstring(L, -1);
 #ifdef DEBUG
@@ -28,7 +27,10 @@ private:
         }
         return o->Lua_Index(L, key);
     }
-    static int Lua_NewIndexWrapper(lua_State *L) {
+
+    // ReSharper disable once CppDFAConstantFunctionResult
+    static int Lua_NewIndexWrapper(lua_State *L)
+    {
         T *o = luaL_checkthis(L, -3);
         const char *key = luaL_checkstring(L, -2);
 #ifdef DEBUG
@@ -36,37 +38,62 @@ private:
 #endif
         auto it = T::Lua_Methods.find(key);
         if (it != T::Lua_Methods.end()) { // disallow write to method names
-            std::string msg = std::string("Can't assign to method \"") + key + "\" of \"" + T::Lua_Name + "\"";
+            const std::string msg = std::string("Can't assign to method \"") + key + "\" of \"" + T::Lua_Name + "\"";
             luaL_error(L, msg.c_str());
             return 0;
         }
         if (!o->Lua_NewIndex(L, key)) {
-            std::string msg = std::string("Unknown property \"") + key + "\" for \"" + T::Lua_Name + "\"";
+            const std::string msg = std::string("Unknown property \"") + key + "\" for \"" + T::Lua_Name + "\"";
             luaL_error(L, msg.c_str());
             return 0;
         }
         return 0;
     }
+
     static int Lua_GCWrapper(lua_State *L) {
         T *o = luaL_checkthis(L, 1);
         o->Lua_GC(L);
         return 0;
     }
+
 protected:
     LuaInterface(){}
-    virtual int Lua_Index(lua_State *L, const char *key){return 0;}
-    virtual bool Lua_NewIndex(lua_State *L, const char *key){return false;}
-    virtual void Lua_GC(lua_State *L){}
-public:
-    virtual ~LuaInterface() {}
-    static T* luaL_checkthis(lua_State *L, int narg) {
-        return * (T**)luaL_checkudata(L, narg, T::Lua_Name);
+
+    virtual int Lua_Index(lua_State *L, const char *key)
+    {
+        (void)L;
+        (void)key;
+        return 0;
     }
-    static T* luaL_testthis(lua_State *L, int narg) {
-        auto p = (T**)luaL_testudata(L, narg, T::Lua_Name);
-        if (p) return *p;
+
+    virtual bool Lua_NewIndex(lua_State *L, const char *key)
+    {
+        (void)L;
+        (void)key;
+        return false;
+    }
+
+    virtual void Lua_GC(lua_State *L)
+    {
+        (void)L;
+    }
+
+public:
+    ~LuaInterface() override = default;
+
+    static T* luaL_checkthis(lua_State *L, const int narg)
+    {
+        return * static_cast<T **>(luaL_checkudata(L, narg, T::Lua_Name));
+    }
+
+    static T* luaL_testthis(lua_State *L, const int narg)
+    {
+        auto p = static_cast<T **>(luaL_testudata(L, narg, T::Lua_Name));
+        if (p)
+            return *p;
         return nullptr;
     }
+
     // TODO: replace this by a custom constexpr_map
     using MethodMap = std::map<const std::string_view,lua_CFunction>;
     
@@ -85,9 +112,9 @@ public:
 #endif
     }
     
-    virtual void Lua_Push(lua_State *L) const { // pushes instance to Lua stack
+    void Lua_Push(lua_State *L) const override { // pushes instance to Lua stack
         // create userdata=pointer for this instance
-        const void **ud = (const void**) lua_newuserdata(L, sizeof(void**));
+        auto ud = static_cast<const void **>(lua_newuserdata(L, sizeof(void**)));
         *ud = this;
         // set metatable
         luaL_setmetatable(L, T::Lua_Name);
