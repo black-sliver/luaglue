@@ -11,7 +11,6 @@ extern "C" {
 #include <lua.h>
 #include <lauxlib.h>
 }
-#include <limits>
 
 
 #if LUA_VERSION_NUM < 503
@@ -19,10 +18,9 @@ static int lua_isinteger(lua_State *L, int idx)
 {
     if (!lua_isnumber(L, idx))
         return 0;
-    lua_Number number = lua_tonumber(L, idx);
-    if (number < std::numeric_limits<lua_Integer>::min() || number > std::numeric_limits<lua_Integer>::max())
-        return 0;
-    return trunc(number) == number;    
+    lua_Number n = lua_tonumber(L, idx);
+    lua_Integer i = lua_tointeger(L, idx);
+    return (n == i) ? 1 : 0;
 }
 #endif
 
