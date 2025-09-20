@@ -7,10 +7,17 @@
 // Stuff like __attribute((weak)) and /alternatename is not cross-platform, so we ditch that idea for now.
 
 
+#ifdef __cplusplus
 extern "C" {
+#endif
+
 #include <lua.h>
 #include <lauxlib.h>
+
+#ifdef __cplusplus
 }
+#endif
+
 
 
 #if LUA_VERSION_NUM < 503
