@@ -34,7 +34,9 @@ This header-only library provides
 * JSON helper functions in `lua_json.h`
 
     `json lua_to_json(lua_State*)` creates json from lua stack \
-    `json_to_lua(lua_State*, json&)` pushes json to lua stack
+    `json_to_lua(lua_State*, json&)` pushes json to lua stack \
+    With exceptions enabled they can throw std::runtime_error when nesting too deep. \
+    With exceptions disabled, the elements will be `nil`/`null` once the limit is reached.
 
 * `lua_*` functions in `luacompat.h` are used to be able to target lua5.1 and lua5.2
 
