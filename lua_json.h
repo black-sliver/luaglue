@@ -118,7 +118,7 @@ static void json_to_lua(lua_State* L, const json& j)
 {
     switch (j.type()) {
         case json::value_t::number_unsigned:
-            if (sizeof(lua_Integer) >= 8 || j.get<uint64_t>() <= INT32_MAX) {
+            if ((sizeof(lua_Integer) >= 8 && j.get<uint64_t>() <= INT64_MAX) || j.get<uint64_t>() <= INT32_MAX) {
                 lua_pushinteger(L, j);
             } else {
                 lua_pushnumber(L, j);
