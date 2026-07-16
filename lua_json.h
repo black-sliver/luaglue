@@ -6,6 +6,38 @@
 #include <nlohmann/json.hpp>
 
 
+#if defined __cpp_exceptions || defined __EXCEPTIONS || defined _CPPUNWIND
+#   define HAS_EXCEPTIONS
+#   define LUA_TO_JSON_MAX_DEPTH_REACHED() \
+        throw std::runtime_error("Max depth reached");
+#   define LUA_TO_JSON_STACK_OVERFLOW() \
+        throw std::runtime_error("Stack overflow");
+#   define JSON_TO_LUA_MAX_DEPTH_REACHED() \
+        throw std::runtime_error("Max depth reached");
+#   define JSON_TO_LUA_STACK_OVERFLOW() \
+        throw std::runtime_error("Stack overflow");
+#else
+#   define LUA_TO_JSON_MAX_DEPTH_REACHED() { \
+        fprintf(stderr, "Warning: Max depth reached in lua_to_json. Returning null.\n"); \
+        return nullptr; \
+    }
+#   define LUA_TO_JSON_STACK_OVERFLOW() { \
+        fprintf(stderr, "Warning: Lua stack overflow in lua_to_json. Returning null.\n"); \
+        return nullptr; \
+    }
+#   define JSON_TO_LUA_MAX_DEPTH_REACHED() { \
+        lua_pushnil(L); \
+        fprintf(stderr, "Warning: Max depth reached in json_to_lua. Returning nil.\n"); \
+        return; \
+    }
+#   define JSON_TO_LUA_STACK_OVERFLOW() { \
+        lua_pushnil(L); \
+        fprintf(stderr, "Warning: Lua stack overflow in json_to_lua. Returning nil.\n"); \
+        return; \
+    }
+#endif
+
+
 using nlohmann::json;
 
 
@@ -43,7 +75,7 @@ public:
 #endif
 };
 
-static json lua_to_json(lua_State* L, int n=-1)
+static json lua_to_json(lua_State* L, const int n = -1, const int maxDepth = 1000)
 {
     json j;
     auto type = lua_type(L,n);
@@ -58,6 +90,10 @@ static json lua_to_json(lua_State* L, int n=-1)
             return (bool)lua_toboolean(L,n);
         case LUA_TTABLE:
         {
+            if (maxDepth == 1)
+                LUA_TO_JSON_MAX_DEPTH_REACHED();
+            if (!lua_checkstack(L, 2))
+                LUA_TO_JSON_STACK_OVERFLOW();
             lua_pushnil(L); // first key
             while (lua_next(L, (n<0) ? (n-1) : n)) {
                 // key now at -2, value at -1
@@ -67,11 +103,29 @@ static json lua_to_json(lua_State* L, int n=-1)
                         // NOTE: key will be a string when converting mixed back; this has to be handled in lua
                         int ikey = lua_tointeger(L,-2);
                         std::string key = std::to_string(ikey);
+#ifdef HAS_EXCEPTIONS
+                        try {
+                            j[key] = lua_to_json(L);
+                        } catch (...) {
+                            lua_pop(L, 2);
+                            throw;
+                        }
+#else
                         j[key] = lua_to_json(L);
+#endif
                     } else {
                         int key = lua_tointeger(L,-2) - 1; // nlohmann::json arrays are zero-based
                         if (key>=0) {
-                            j[key] = lua_to_json(L);
+#ifdef HAS_EXCEPTIONS
+                            try {
+                                j[key] = lua_to_json(L, -1, maxDepth - 1);
+                            } catch (...) {
+                                lua_pop(L, 2);
+                                throw;
+                            }
+#else
+                            j[key] = lua_to_json(L, -1, maxDepth - 1);
+#endif
                         } else {
                             fprintf(stderr, "Warning: Invalid array index: %d\n", key);
                         }
@@ -89,7 +143,16 @@ static json lua_to_json(lua_State* L, int n=-1)
                         }
                     }
                     const char* key = lua_tostring(L,-2);
-                    j[key] = lua_to_json(L);
+#ifdef HAS_EXCEPTIONS
+                    try {
+                        j[key] = lua_to_json(L, -1, maxDepth - 1);
+                    } catch (...) {
+                        lua_pop(L, 2);
+                        throw;
+                    }
+#else
+                    j[key] = lua_to_json(L, -1, maxDepth - 1);
+#endif
                 } else {
                     fprintf(stderr, "Warning: unhandled table key type %d\n", lua_type(L,-2));
                 }
@@ -114,8 +177,10 @@ static json lua_to_json(lua_State* L, int n=-1)
     return j;
 }
 
-static void json_to_lua(lua_State* L, const json& j)
+static void json_to_lua(lua_State* L, const json& j, const int maxDepth = 1000)
 {
+    if (!lua_checkstack(L, 1))
+        JSON_TO_LUA_STACK_OVERFLOW();
     switch (j.type()) {
         case json::value_t::number_unsigned:
             if ((sizeof(lua_Integer) >= 8 && j.get<uint64_t>() <= INT64_MAX) || j.get<uint64_t>() <= INT32_MAX) {
@@ -144,17 +209,45 @@ static void json_to_lua(lua_State* L, const json& j)
             lua_pushnil(L);
             break;
         case json::value_t::object:
+            if (maxDepth == 1)
+                JSON_TO_LUA_MAX_DEPTH_REACHED();
+            if (!lua_checkstack(L, 2)) {
+                lua_pushnil(L);
+                JSON_TO_LUA_STACK_OVERFLOW();
+            }
             lua_newtable(L);
             for (auto it=j.begin(); it!=j.end(); ++it) {
-                json_to_lua(L, it.value());
+#ifdef HAS_EXCEPTIONS
+                try {
+                    json_to_lua(L, it.value(), maxDepth - 1);
+                } catch (...) {
+                    lua_pop(L, 1);
+                    throw;
+                }
+#else
+                json_to_lua(L, it.value(), maxDepth - 1);
+#endif
                 lua_setfield(L, -2, it.key().c_str());
             }
             break;
         case json::value_t::array:
+            if (maxDepth == 1)
+                JSON_TO_LUA_MAX_DEPTH_REACHED();
+            if (!lua_checkstack(L, 3))
+                JSON_TO_LUA_STACK_OVERFLOW();
             lua_newtable(L);
             for (size_t i=0; i<j.size(); i++) {
                 lua_pushinteger(L, i+1);
-                json_to_lua(L, j[i]);
+#ifdef HAS_EXCEPTIONS
+                try {
+                    json_to_lua(L, j[i], maxDepth - 1);
+                } catch (...) {
+                    lua_pop(L, 2);
+                    throw;
+                }
+#else
+                json_to_lua(L, j[i], maxDepth - 1);
+#endif
                 lua_settable(L, -3);
             }
             break;
@@ -166,6 +259,12 @@ static void json_to_lua(lua_State* L, const json& j)
             break;
     }
 }
+
+
+#undef HAS_EXCEPTIONS
+#undef LUA_TO_JSON_MAX_DEPTH_REACHED
+#undef LUA_TO_JSON_STACK_OVERFLOW
+#undef JSON_TO_LUA_STACK_OVERFLOW
 
 #endif /* LUAJSON_H */
 
