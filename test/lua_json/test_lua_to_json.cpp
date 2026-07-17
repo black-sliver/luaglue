@@ -127,3 +127,24 @@ TEST_F(LuaToJsonTest, MixedDict) {
     EXPECT_EQ(lua_tointeger(L, 1), 1);
     EXPECT_EQ(lua_tointeger(L, -1), 2);
 }
+
+TEST_F(LuaToJsonTest, Integer) {
+    lua_pushinteger(L, std::numeric_limits<lua_Integer>::max()); // 1
+    lua_pushinteger(L, std::numeric_limits<lua_Integer>::min()); // 2
+    EXPECT_EQ(lua_to_json(L, 1), std::numeric_limits<lua_Integer>::max());
+    EXPECT_EQ(lua_to_json(L, 2), std::numeric_limits<lua_Integer>::min());
+    lua_pushnumber(L, static_cast<lua_Number>(std::numeric_limits<int64_t>::max())); // 3
+    lua_pushnumber(L, static_cast<lua_Number>(std::numeric_limits<int64_t>::min())); // 4
+    lua_pushnumber(L, static_cast<lua_Number>(std::numeric_limits<uint64_t>::max())); // 5
+    if constexpr (sizeof(lua_Number) == sizeof(double)) {
+        EXPECT_DOUBLE_EQ(lua_to_json(L, 3), static_cast<double>(std::numeric_limits<int64_t>::max()));
+        EXPECT_DOUBLE_EQ(lua_to_json(L, 4), static_cast<double>(std::numeric_limits<int64_t>::min()));
+        EXPECT_DOUBLE_EQ(lua_to_json(L, 5), static_cast<double>(std::numeric_limits<uint64_t>::max()));
+    } else if constexpr (sizeof(lua_Number) == sizeof(float)) {
+        EXPECT_FLOAT_EQ(lua_to_json(L, 3), static_cast<float>(std::numeric_limits<int64_t>::max()));
+        EXPECT_FLOAT_EQ(lua_to_json(L, 4), static_cast<float>(std::numeric_limits<int64_t>::min()));
+        EXPECT_FLOAT_EQ(lua_to_json(L, 5), static_cast<float>(std::numeric_limits<uint64_t>::max()));
+    } else {
+        FAIL() << "Unsupported lua_Number size";
+    }
+}
