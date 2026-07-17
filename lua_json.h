@@ -238,7 +238,11 @@ static void json_to_lua(lua_State* L, const json& j, const int maxDepth = 1000)
                 JSON_TO_LUA_STACK_OVERFLOW();
             lua_newtable(L);
             for (size_t i=0; i<j.size(); i++) {
-                lua_pushinteger(L, i+1);
+                if (sizeof(i) < sizeof(lua_Integer)
+                        || i < static_cast<size_t>(std::numeric_limits<lua_Integer>::max()))
+                    lua_pushinteger(L, static_cast<lua_Integer>(i) + 1);
+                else
+                    lua_pushnumber(L, static_cast<lua_Number>(i) + 1);
 #ifdef HAS_EXCEPTIONS
                 try {
                     json_to_lua(L, j[i], maxDepth - 1);
