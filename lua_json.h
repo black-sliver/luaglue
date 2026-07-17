@@ -7,7 +7,7 @@
 
 
 #if defined __cpp_exceptions || defined __EXCEPTIONS || defined _CPPUNWIND
-#   define HAS_EXCEPTIONS
+#   define LUA_JSON_HAS_EXCEPTIONS
 #   define LUA_TO_JSON_MAX_DEPTH_REACHED() \
         throw std::runtime_error("Max depth reached");
 #   define LUA_TO_JSON_STACK_OVERFLOW() \
@@ -55,13 +55,13 @@ public:
 
     void Lua_Push(lua_State *L) const { // pushes instance to Lua stack
         // create userdata=pointer for this instance
-        const void **ud = (const void**) lua_newuserdata(L, sizeof(void**));
+        auto* ud = static_cast<const void **>(lua_newuserdata(L, sizeof(void**)));
         *ud = nullptr;
         // set metatable
         luaL_setmetatable(L, Lua_Name);
     }
 
-    static bool Lua_is(lua_State *L, int narg) {
+    static bool Lua_is(lua_State *L, const int narg) {
         if (luaL_testudata(L, narg, Lua_Name))
             return true;
         return false;
@@ -78,16 +78,15 @@ public:
 static json lua_to_json(lua_State* L, const int n = -1, const int maxDepth = 1000)
 {
     json j;
-    auto type = lua_type(L,n);
-    switch (type) {
+    switch (lua_type(L, n)) {
         case LUA_TNUMBER:
-            if (lua_isinteger(L,n))
-                return lua_tointeger(L,n);
-            return lua_tonumber(L,n);
+            if (lua_isinteger(L, n))
+                return lua_tointeger(L, n);
+            return lua_tonumber(L, n);
         case LUA_TSTRING:
-            return lua_tostring(L,n);
+            return lua_tostring(L, n);
         case LUA_TBOOLEAN:
-            return (bool)lua_toboolean(L,n);
+            return static_cast<bool>(lua_toboolean(L, n));
         case LUA_TTABLE:
         {
             if (maxDepth == 1)
@@ -95,15 +94,16 @@ static json lua_to_json(lua_State* L, const int n = -1, const int maxDepth = 100
             if (!lua_checkstack(L, 2))
                 LUA_TO_JSON_STACK_OVERFLOW();
             lua_pushnil(L); // first key
-            while (lua_next(L, (n<0) ? (n-1) : n)) {
+            while (lua_next(L, (n < 0) ? (n - 1) : n)) {
                 // key now at -2, value at -1
-                if (lua_isinteger(L,-2)) {
-                    if (j.is_null()) j = json::array();
+                if (lua_isinteger(L, -2)) {
+                    if (j.is_null())
+                        j = json::array();
                     if (j.is_object()) {
                         // NOTE: key will be a string when converting mixed back; this has to be handled in lua
-                        int ikey = lua_tointeger(L,-2);
-                        std::string key = std::to_string(ikey);
-#ifdef HAS_EXCEPTIONS
+                        const lua_Integer ikey = lua_tointeger(L, -2);
+                        const std::string key = std::to_string(ikey);
+#ifdef LUA_JSON_HAS_EXCEPTIONS
                         try {
                             j[key] = lua_to_json(L);
                         } catch (...) {
@@ -114,37 +114,38 @@ static json lua_to_json(lua_State* L, const int n = -1, const int maxDepth = 100
                         j[key] = lua_to_json(L);
 #endif
                     } else {
-                        int key = lua_tointeger(L,-2) - 1; // nlohmann::json arrays are zero-based
-                        if (key>=0) {
-#ifdef HAS_EXCEPTIONS
+                        const lua_Integer key = lua_tointeger(L, -2);
+                        if (key > 0) { // nlohmann::json arrays are zero-based, Lua arrays are one-based
+#ifdef LUA_JSON_HAS_EXCEPTIONS
                             try {
-                                j[key] = lua_to_json(L, -1, maxDepth - 1);
+                                j[key - 1] = lua_to_json(L, -1, maxDepth - 1);
                             } catch (...) {
                                 lua_pop(L, 2);
                                 throw;
                             }
 #else
-                            j[key] = lua_to_json(L, -1, maxDepth - 1);
+                            j[key - 1] = lua_to_json(L, -1, maxDepth - 1);
 #endif
                         } else {
-                            fprintf(stderr, "Warning: Invalid array index: %d\n", key);
+                            fprintf(stderr, "Warning: Invalid array index: %ld\n", static_cast<long>(key));
                         }
                     }
-                } else if (lua_isstring(L,-2)) {
-                    if (j.is_null()) j = json::object();
+                } else if (lua_isstring(L, -2)) {
+                    if (j.is_null())
+                        j = json::object();
                     if (j.is_array()) {
                         // convert array to object for mixed table
                         json arr = j;
                         j = json::object();
-                        int i = 1;
-                        for (auto it: arr) {
-                            std::string key = std::to_string(i);
+                        lua_Integer i = 1;
+                        for (const auto& it: arr) {
+                            const std::string key = std::to_string(i);
                             j[key] = it;
                             i++;
                         }
                     }
-                    const char* key = lua_tostring(L,-2);
-#ifdef HAS_EXCEPTIONS
+                    const char* key = lua_tostring(L, -2);
+#ifdef LUA_JSON_HAS_EXCEPTIONS
                     try {
                         j[key] = lua_to_json(L, -1, maxDepth - 1);
                     } catch (...) {
@@ -155,12 +156,13 @@ static json lua_to_json(lua_State* L, const int n = -1, const int maxDepth = 100
                     j[key] = lua_to_json(L, -1, maxDepth - 1);
 #endif
                 } else {
-                    fprintf(stderr, "Warning: unhandled table key type %d\n", lua_type(L,-2));
+                    fprintf(stderr, "Warning: unhandled table key type %d\n", lua_type(L, -2));
                 }
                 // pop value, keep key (used in lua_next())
-                lua_pop(L,1);
+                lua_pop(L, 1);
             }
-            if (j.is_null()) j = json::object(); // return empty object for empty table
+            if (j.is_null())
+                j = json::object(); // return empty object for empty table
             break;
         }
         case LUA_TUSERDATA:
@@ -215,8 +217,8 @@ static void json_to_lua(lua_State* L, const json& j, const int maxDepth = 1000)
             if (!lua_checkstack(L, 2))
                 JSON_TO_LUA_STACK_OVERFLOW();
             lua_newtable(L);
-            for (auto it=j.begin(); it!=j.end(); ++it) {
-#ifdef HAS_EXCEPTIONS
+            for (auto it = j.begin(); it != j.end(); ++it) {
+#ifdef LUA_JSON_HAS_EXCEPTIONS
                 try {
                     json_to_lua(L, it.value(), maxDepth - 1);
                 } catch (...) {
@@ -235,13 +237,13 @@ static void json_to_lua(lua_State* L, const json& j, const int maxDepth = 1000)
             if (!lua_checkstack(L, 3))
                 JSON_TO_LUA_STACK_OVERFLOW();
             lua_newtable(L);
-            for (size_t i=0; i<j.size(); i++) {
+            for (size_t i = 0; i < j.size(); i++) {
                 if (sizeof(i) < sizeof(lua_Integer)
                         || i < static_cast<size_t>(std::numeric_limits<lua_Integer>::max()))
                     lua_pushinteger(L, static_cast<lua_Integer>(i) + 1);
                 else
                     lua_pushnumber(L, static_cast<lua_Number>(i) + 1);
-#ifdef HAS_EXCEPTIONS
+#ifdef LUA_JSON_HAS_EXCEPTIONS
                 try {
                     json_to_lua(L, j[i], maxDepth - 1);
                 } catch (...) {
@@ -257,14 +259,14 @@ static void json_to_lua(lua_State* L, const json& j, const int maxDepth = 1000)
         default:
             // not implemented
             fprintf(stderr, "Warning: unhandled type %d %s in json_to_lua()\n",
-                    (int)j.type(), j.type_name());
+                    static_cast<int>(j.type()), j.type_name());
             lua_pushnil(L);
             break;
     }
 }
 
 
-#undef HAS_EXCEPTIONS
+#undef LUA_JSON_HAS_EXCEPTIONS
 #undef LUA_TO_JSON_MAX_DEPTH_REACHED
 #undef LUA_TO_JSON_STACK_OVERFLOW
 #undef JSON_TO_LUA_STACK_OVERFLOW
