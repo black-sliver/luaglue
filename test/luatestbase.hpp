@@ -17,6 +17,12 @@ protected:
         L = luaL_newstate();
     }
 
+    ~LuaTestBase() override
+    {
+        lua_close(L);
+        L = nullptr;
+    }
+
     NODISCARD
     bool doString(const char* s) const
     {
