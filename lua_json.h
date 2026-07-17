@@ -212,10 +212,8 @@ static void json_to_lua(lua_State* L, const json& j, const int maxDepth = 1000)
         case json::value_t::object:
             if (maxDepth == 1)
                 JSON_TO_LUA_MAX_DEPTH_REACHED();
-            if (!lua_checkstack(L, 2)) {
-                lua_pushnil(L);
+            if (!lua_checkstack(L, 2))
                 JSON_TO_LUA_STACK_OVERFLOW();
-            }
             lua_newtable(L);
             for (auto it=j.begin(); it!=j.end(); ++it) {
 #ifdef HAS_EXCEPTIONS
