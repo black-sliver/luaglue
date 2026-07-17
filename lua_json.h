@@ -140,6 +140,7 @@ static json lua_to_json(lua_State* L, const int n = -1, const int maxDepth = 100
                         for (auto it: arr) {
                             std::string key = std::to_string(i);
                             j[key] = it;
+                            i++;
                         }
                     }
                     const char* key = lua_tostring(L,-2);

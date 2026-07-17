@@ -52,6 +52,7 @@ TEST_F(LuaToJsonTest, IndirectRecursion) {
 }
 
 TEST_F(LuaToJsonTest, MixedKeysDict) {
+    // this will create an object and use an integer key
     ASSERT_TRUE(doString(R""""(
         return {
             ["1"] = 1,
@@ -68,6 +69,30 @@ TEST_F(LuaToJsonTest, MixedKeysDict) {
     ASSERT_EQ(lua_gettop(L), 1);
     auto j = lua_to_json(L, -1);
     EXPECT_TRUE(j.is_object());
+    EXPECT_EQ(j["2"], 2);
+    EXPECT_EQ(lua_gettop(L), 1);
+}
+
+
+TEST_F(LuaToJsonTest, MixedKeysDict2) {
+    // this will first create an array and then convert to object for string keys
+    ASSERT_TRUE(doString(R""""(
+        return {
+            [1] = 1,
+            [2] = 2,
+            [3] = 3,
+            [4] = 4,
+            ["5"] = 5,
+            [6] = 6,
+            [7] = 7,
+            [8] = 8,
+            [9] = 9
+        }
+    )""""));
+    ASSERT_EQ(lua_gettop(L), 1);
+    auto j = lua_to_json(L, -1);
+    EXPECT_TRUE(j.is_object());
+    EXPECT_EQ(j["2"], 2);
     EXPECT_EQ(lua_gettop(L), 1);
 }
 
