@@ -51,7 +51,7 @@ TEST_F(JsonToLuaTest, Uint) {
         json_to_lua(L, n);
         EXPECT_FLOAT_EQ(lua_tonumber(L, -1), static_cast<lua_Number>(n));
     } else {
-        FAIL() << "Unsupported lua_Number ir lua_Integer size";
+        FAIL() << "Unsupported lua_Number or lua_Integer size";
     }
 
     if constexpr (sizeof(lua_Integer) == sizeof(int64_t)) {
