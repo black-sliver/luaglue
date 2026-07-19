@@ -13,10 +13,6 @@
         { statement; EXPECT_TRUE(typeCheck(L, -1)); }
 #endif
 
-#if defined __cpp_exceptions || defined __EXCEPTIONS || defined _CPPUNWIND
-#   define HAS_EXCEPTIONS
-#endif
-
 
 class JsonToLuaTest : public LuaTestBase {};
 
@@ -104,7 +100,7 @@ TEST_F(JsonToLuaTest, Number) {
 TEST_F(JsonToLuaTest, ArrayTooDeep) {
     std::string s = std::string(100000, '[') + std::string(100000, ']');
     EXPECT_RECURSIVE(json_to_lua(L, json::parse(s)), lua_istable);
-#ifdef HAS_EXCEPTIONS
+#ifdef USE_EXCEPTIONS
     EXPECT_EQ(lua_gettop(L), 0);
 #else
     EXPECT_EQ(lua_gettop(L), 1);
@@ -119,7 +115,7 @@ TEST_F(JsonToLuaTest, DictTooDeep) {
     for (unsigned n = 0; n < 100000; n++)
         s += "}";
     EXPECT_RECURSIVE(json_to_lua(L, json::parse(s)), lua_istable);
-#ifdef HAS_EXCEPTIONS
+#ifdef USE_EXCEPTIONS
     EXPECT_EQ(lua_gettop(L), 0);
 #else
     EXPECT_EQ(lua_gettop(L), 1);
@@ -133,7 +129,7 @@ TEST_F(JsonToLuaTest, MixedTooDeep) {
     for (unsigned n = 0; n < 100000; n++)
         s += "]}";
     EXPECT_RECURSIVE(json_to_lua(L, json::parse(s)), lua_istable);
-#ifdef HAS_EXCEPTIONS
+#ifdef USE_EXCEPTIONS
     EXPECT_EQ(lua_gettop(L), 0);
 #else
     EXPECT_EQ(lua_gettop(L), 1);
