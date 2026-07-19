@@ -14,6 +14,10 @@
 #endif
 #include "_return_type.h"
 
+#if defined __cpp_exceptions || defined __EXCEPTIONS || defined _CPPUNWIND
+#   define LUAMETHOD_HAS_EXCEPTIONS
+#endif
+
 #ifdef DEBUG_LUA_METHOD
 #   define LUAMETHOD_DEBUG_printf printf
 #else
@@ -209,7 +213,16 @@ struct LuaMethod {
         T* o = T::luaL_checkthis(L, 1);
         if (!o)
             return 0;
+#ifdef LUAMETHOD_HAS_EXCEPTIONS
+        try {
+            return LuaMethodHelper<T, FT, F>::template run<>(L, o, 2); // no args
+        } catch (const std::exception &e) {
+            luaL_error(L, "%s", e.what());
+            return 0;
+        }
+#else
         return LuaMethodHelper<T, FT, F>::template run<>(L, o, 2); // no args
+#endif
     }
 
     template <class R = int, std::size_t N = sizeof...(Args)>
@@ -218,7 +231,16 @@ struct LuaMethod {
         T* o = T::luaL_checkthis(L, 1);
         if (!o)
             return 0;
+#ifdef LUAMETHOD_HAS_EXCEPTIONS
+        try {
+            return LuaMethodHelper<T, FT, F>::template run<Args...>(L, o, 2); // with args
+        } catch (const std::exception &e) {
+            luaL_error(L, "%s", e.what());
+            return 0;
+        }
+#else
         return LuaMethodHelper<T, FT, F>::template run<Args...>(L, o, 2); // with args
+#endif
     }
 
     constexpr static size_t ArgCount = !hasArgs() ? 0 : sizeof...(Args);

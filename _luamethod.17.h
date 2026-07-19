@@ -13,6 +13,10 @@
 #include "lua_json.h"
 #endif
 
+#if defined __cpp_exceptions || defined __EXCEPTIONS || defined _CPPUNWIND
+#   define LUAMETHOD_HAS_EXCEPTIONS
+#endif
+
 #ifdef DEBUG_LUA_METHOD
 #   define LUAMETHOD_DEBUG_printf printf
 #else
@@ -132,7 +136,6 @@ struct LuaMethodHelper
             Lua(L).Push(res);
             LUAMETHOD_DEBUG_printf("LuaMethod pushed int64: %lld\n", (long long)res);
             return 1;
-        // TODO: translate c++ exceptions into lua_errors
         // TODO: unsigned result
         // TODO: test if some other return types have conflicts
         // TODO: maybe allow tuples for more than 1 result value?
@@ -176,10 +179,19 @@ struct LuaMethod {
         T* o = T::luaL_checkthis(L, 1);
         if (!o)
             return 0;
-        if constexpr (!hasArgs())
-            return LuaMethodHelper<T,F>::template run<>(L, o, 2);
-        else
-            return LuaMethodHelper<T,F>::template run<Args...>(L, o, 2);
+#ifdef LUAMETHOD_HAS_EXCEPTIONS
+        try {
+#endif
+            if constexpr (!hasArgs())
+                return LuaMethodHelper<T,F>::template run<>(L, o, 2);
+            else
+                return LuaMethodHelper<T,F>::template run<Args...>(L, o, 2);
+#ifdef LUAMETHOD_HAS_EXCEPTIONS
+        } catch (const std::exception &e) {
+            luaL_error(L, "%s", e.what());
+            return 0;
+        }
+#endif
     }
 
     constexpr static size_t ArgCount = !hasArgs() ? 0 : sizeof...(Args);
