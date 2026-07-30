@@ -128,6 +128,34 @@ TEST_F(LuaToJsonTest, MixedKeysDict3) {
     EXPECT_EQ(lua_gettop(L), 1);
 }
 
+TEST_F(LuaToJsonTest, SparseArray) {
+    // Array where elements are missing.
+    // NOTE: those are hard to use from Lua, so maybe this will change to a dict in the future.
+    ASSERT_TRUE(doString(R""""(
+        return {
+            [2] = 1,
+            [3] = 2,
+            [4] = 3,
+            [6] = 4,
+        }
+    )""""));
+    ASSERT_EQ(lua_gettop(L), 1);
+    auto j = lua_to_json(L, -1);
+    EXPECT_TRUE(j.is_array());
+    EXPECT_EQ(j[0], nullptr);
+    EXPECT_EQ(j[1], 1);
+    EXPECT_EQ(j[5], 4);
+    EXPECT_EQ(lua_gettop(L), 1);
+    lua_pop(L, 1);
+    json_to_lua(L, j);
+    lua_geti(L, -1, 2);
+    EXPECT_EQ(lua_tointeger(L, -1), 1);
+    lua_pop(L, 1);
+    lua_geti(L, -1, 6);
+    EXPECT_EQ(lua_tointeger(L, -1), 4);
+    lua_pop(L, 2);
+}
+
 TEST_F(LuaToJsonTest, EmptyArray) {
     LuaJson_EmptyArray::Lua_Register(L);
     LuaJson_EmptyArray{}.Lua_Push(L);
