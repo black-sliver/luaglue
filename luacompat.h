@@ -32,6 +32,15 @@ static int lua_isinteger(lua_State *L, int idx)
     }
     return std::modf(n, &n) == 0.0 ? 1 : 0;
 }
+
+static int lua_geti(lua_State *L, int index, const lua_Integer i)
+{
+    lua_pushinteger(L, i);
+    if (index < 0)
+        index--;
+    lua_gettable(L, index);
+    return lua_type(L, -1);
+}
 #endif
 
 #if LUA_VERSION_NUM < 502
