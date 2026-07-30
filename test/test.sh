@@ -9,7 +9,12 @@ if [ -z "$CXX" ]; then
   CXX="g++"
 fi
 
-LIBS="-lgtest_main -lgtest -llua"
+LIBS="-lgtest_main -lgtest"
+if [ "$LUA_VERSION" != "" ]; then
+  LIBS="$LIBS $(pkg-config --cflags --libs "$LUA_VERSION")"
+else
+  LIBS="$LIBS -llua"
+fi
 TEST_DIR="$(dirname "$0")"
 TEST_FILES="$TEST_DIR/*/*.cpp"
 TEST_BUILD_DIR="$TEST_DIR/build"
