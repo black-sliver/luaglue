@@ -1,12 +1,28 @@
 #pragma once
 
-extern "C" {
-#include <lua.h>
-#include <lauxlib.h>
-#include <lualib.h>
-}
 #include <gtest/gtest.h>
 #include "macros.hpp"
+#include "../luacompat.h"
+#include "../lua_include.h"
+
+
+// some internal back compat for tests
+#ifndef LUA_GNAME
+#define LUA_GNAME "_G"
+#endif
+
+#if LUA_VERSION_NUM < 502
+static void luaL_requiref(lua_State *L, const char *modname, lua_CFunction openf, int glb)
+{
+    lua_pushcfunction(L, openf);
+    lua_pushstring(L, modname);
+    lua_call(L, 1, 1);
+    if (glb) {
+        lua_pushvalue(L, -1);
+        lua_setglobal(L, modname);
+    }
+}
+#endif
 
 
 class LuaTestBase : public testing::Test {

@@ -2,6 +2,7 @@
 #include <nlohmann/json.hpp>
 #include "../luatestbase.hpp"
 #include "../macros.hpp"
+#include "../../luacompat.h" // lua_isnumber for < 5.3
 #include "../../lua_json.h"
 
 
@@ -41,6 +42,7 @@ TEST_F(JsonToLuaTest, Uint) {
     if constexpr(sizeof(lua_Number) == sizeof(double) && sizeof(lua_Integer) == sizeof(uint64_t)) {
         constexpr uint64_t n = std::numeric_limits<uint64_t>::max();
         json_to_lua(L, n);
+        EXPECT_FALSE(lua_isinteger(L, -1));
         EXPECT_DOUBLE_EQ(lua_tonumber(L, -1), static_cast<lua_Number>(n));
     } else if constexpr(sizeof(lua_Number) == sizeof(double) && sizeof(lua_Integer) == sizeof(uint32_t)) {
         constexpr uint64_t n = std::numeric_limits<uint32_t>::max();
@@ -57,8 +59,13 @@ TEST_F(JsonToLuaTest, Uint) {
     if constexpr (sizeof(lua_Integer) == sizeof(int64_t)) {
         constexpr uint64_t m = std::numeric_limits<int64_t>::max();
         json_to_lua(L, m);
-        EXPECT_TRUE(lua_isinteger(L, -1));
+#if LUA_VERSION_NUM >= 503
+        EXPECT_TRUE(lua_isinteger(L, -1)); // part of the type system
         EXPECT_EQ(lua_tointeger(L, -1), std::numeric_limits<lua_Integer>::max());
+#else
+        EXPECT_FALSE(lua_isinteger(L, -1)); // beyond safe max integer
+#endif
+        EXPECT_EQ(lua_tonumber(L, -1), std::numeric_limits<lua_Integer>::max());
     } else if constexpr (sizeof(lua_Integer) == sizeof(int32_t)) {
         constexpr uint64_t m = std::numeric_limits<int32_t>::max();
         json_to_lua(L, m);
@@ -73,7 +80,11 @@ TEST_F(JsonToLuaTest, Int) {
     if constexpr (sizeof(lua_Integer) == sizeof(int64_t)) {
         int64_t m = std::numeric_limits<int64_t>::min();
         json_to_lua(L, m);
-        EXPECT_TRUE(lua_isinteger(L, -1));
+#if LUA_VERSION_NUM >= 503
+        EXPECT_TRUE(lua_isinteger(L, -1)); // part of the type system
+#else
+        EXPECT_FALSE(lua_isinteger(L, -1)); // beyond safe min integer
+#endif
         EXPECT_EQ(lua_tointeger(L, -1), std::numeric_limits<lua_Integer>::min());
     } else if constexpr (sizeof(lua_Integer) == sizeof(int32_t)) {
         int64_t m = std::numeric_limits<int32_t>::min();

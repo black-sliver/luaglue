@@ -51,8 +51,9 @@ TEST_F(LuaToJsonTest, IndirectRecursion) {
     EXPECT_EQ(lua_gettop(L), 1);
 }
 
-TEST_F(LuaToJsonTest, MixedKeysDict) {
-    // this will create an object and use an integer key
+TEST_F(LuaToJsonTest, MixedKeysDict1) {
+    // In Lua 5.3+, this will create an object and use an integer key.
+    // Lua before 5.3 is goofy and converts the keys to int. There is nothing we can do about it.
     ASSERT_TRUE(doString(R""""(
         return {
             ["1"] = 1,
@@ -68,14 +69,20 @@ TEST_F(LuaToJsonTest, MixedKeysDict) {
     )""""));
     ASSERT_EQ(lua_gettop(L), 1);
     auto j = lua_to_json(L, -1);
+#if LUA_VERSION_NUM >= 503
     EXPECT_TRUE(j.is_object());
     EXPECT_EQ(j["2"], 2);
+#else
+    EXPECT_TRUE(j.is_array());
+    EXPECT_EQ(j[1], 2);
+#endif
     EXPECT_EQ(lua_gettop(L), 1);
 }
 
 
 TEST_F(LuaToJsonTest, MixedKeysDict2) {
-    // this will first create an array and then convert to object for string keys
+    // In Lua 5.3+, this will first create an array and then convert to object for string keys.
+    // Lua before 5.3 is goofy and converts the keys to int. There is nothing we can do about it.
     ASSERT_TRUE(doString(R""""(
         return {
             [1] = 1,
@@ -91,8 +98,33 @@ TEST_F(LuaToJsonTest, MixedKeysDict2) {
     )""""));
     ASSERT_EQ(lua_gettop(L), 1);
     auto j = lua_to_json(L, -1);
+#if LUA_VERSION_NUM >= 503
     EXPECT_TRUE(j.is_object());
     EXPECT_EQ(j["2"], 2);
+#else
+    EXPECT_TRUE(j.is_array());
+    EXPECT_EQ(j[1], 2);
+#endif
+    EXPECT_EQ(lua_gettop(L), 1);
+}
+
+TEST_F(LuaToJsonTest, MixedKeysDict3) {
+    // This will first create an array and then convert to object for string keys
+    // in all supported versions of Lua.
+    ASSERT_TRUE(doString(R""""(
+        return {
+            ["a"] = 1,
+            ["b"] = 2,
+            ["c"] = 3,
+            [1] = 4,
+            [2] = 5,
+            [3] = 6,
+        }
+    )""""));
+    ASSERT_EQ(lua_gettop(L), 1);
+    auto j = lua_to_json(L, -1);
+    EXPECT_TRUE(j.is_object());
+    EXPECT_EQ(j["2"], 5);
     EXPECT_EQ(lua_gettop(L), 1);
 }
 
