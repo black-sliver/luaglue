@@ -15,6 +15,7 @@ if [ "$LUA_VERSION" != "" ]; then
 else
   LIBS="$LIBS -llua"
 fi
+WARN_FLAGS="-Wall -Wextra -Werror -Wno-unused-function"
 TEST_DIR="$(dirname "$0")"
 TEST_FILES="$TEST_DIR/*/*.cpp"
 TEST_BUILD_DIR="$TEST_DIR/build"
@@ -23,9 +24,9 @@ TEST_EXE_NO_EX="$TEST_BUILD_DIR/test-no-exceptions"
 
 mkdir -p "$TEST_BUILD_DIR"
 # shellcheck disable=SC2086
-"$CXX" -o "$TEST_EXE" $TEST_FILES $LIBS
+"$CXX" -o "$TEST_EXE" $TEST_FILES $LIBS $WARN_FLAGS
 # shellcheck disable=SC2086
-"$CXX" -o "$TEST_EXE_NO_EX" $TEST_FILES $LIBS -fno-exceptions
+"$CXX" -o "$TEST_EXE_NO_EX" $TEST_FILES $LIBS $WARN_FLAGS -fno-exceptions
 
 set +e
 printf "%s ${GREEN}%s${NORMAL}\n" "Testing with exceptions" "ON"
