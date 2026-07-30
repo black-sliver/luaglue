@@ -35,7 +35,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update -y -qq
-          sudo apt-get install coreutils build-essential liblua${{ matrix.lua }}-dev
+          sudo apt-get install coreutils build-essential libgtest-dev nlohmann-json3-dev liblua${{ matrix.lua }}-dev
       - name: Checkout code
         uses: actions/checkout@v7.0.1
       - name: Build and run tests
