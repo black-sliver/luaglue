@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions: {}
+
+jobs:
+  codespell:
+    runs-on: ubuntu-latest
+    name: Find typos
+
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: codespell-project/actions-codespell@8f01853be192eb0f849a5c7d721450e7a467c579  # v2.2
+        with:
+          check_filenames: true
+          check_hidden: true
+
+  test:
+    name: Test ${{ matrix.lua}} on ${{ matrix.os }}
+    strategy:
+      matrix:
+        lua:
+          - '5.1'
+          - '5.2'
+          - '5.3'
+          - '5.4'
+        os:
+          - 'ubuntu-24.04'
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -y -qq
+          sudo apt-get install coreutils build-essential liblua${{ matrix.lua }}-dev
+      - name: Checkout code
+        uses: actions/checkout@v7.0.1
+      - name: Build and run tests
+        run: |
+          LUA_VERSION=lua${{ matrix.lua }} ./test/test.sh
