@@ -14,12 +14,23 @@
 #if LUA_VERSION_NUM < 503
 static int lua_isinteger(lua_State *L, int idx)
 {
+    const lua_Number minSafeInteger32 = -16777215.0; // -(2^24 - 1)
+    const lua_Number maxSafeInteger32 =  16777215.0; // 2^24 - 1
+    const lua_Number minSafeInteger64 = -9007199254740991.0; // -(2^53 - 1)
+    const lua_Number maxSafeInteger64 =  9007199254740991.0; // 2^53 - 1
     if (!lua_isnumber(L, idx))
         return 0;
-    lua_Number number = lua_tonumber(L, idx);
-    if (number < std::numeric_limits<lua_Integer>::min() || number > std::numeric_limits<lua_Integer>::max())
+    lua_Number n = lua_tonumber(L, idx);
+    if (std::isnan(n))
         return 0;
-    return trunc(number) == number;    
+    if (sizeof(lua_Number) == 4) {
+        if (n < minSafeInteger32 || n > maxSafeInteger32)
+            return 0;
+    } else {
+        if (n < minSafeInteger64 || n > maxSafeInteger64)
+            return 0;
+    }
+    return std::modf(n, &n) == 0.0 ? 1 : 0;
 }
 #endif
 
