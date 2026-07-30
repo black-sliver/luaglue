@@ -6,8 +6,9 @@
 // This compatibility layer is compile-time, so you will have to target the correct version of Lua when compiling.
 // Stuff like __attribute((weak)) and /alternatename is not cross-platform, so we ditch that idea for now.
 
-#include "lua_include.h"
+#include <cmath>
 #include <limits>
+#include "lua_include.h"
 
 
 #if LUA_VERSION_NUM < 503
